@@ -1,10 +1,6 @@
 #!/usr/bin/env python
-from time import sleep
 import tornado.ioloop
 import tornado.web
-from tornado.concurrent import run_on_executor
-from concurrent.futures import ThreadPoolExecutor
-from tornado import gen
 from bitarray import bitarray
 import hashlib
 import sys
@@ -14,7 +10,6 @@ import sys
 hashpart = 30
 m = 2 ** hashpart   # Bloom m-parameter
 k = 7       # Bloom k-parameter
-threads = 4
 
 def getHashes(element):
     H = hashlib.sha224()
@@ -44,10 +39,10 @@ class CmdCheckHandler(tornado.web.RequestHandler):
         self.set_header('Content-Type', 'text/plain; charset="utf-8"')
         for i in hashes:
             if not Bloom[i]:
-                self.write("DEFINITELY MISSING\n")
+                self.write("MISSING\n")
                 return
 
-        self.write("PROBABLY PRESENT\n")
+        self.write("PRESENT\n")
 
 # Init
 

@@ -10,6 +10,7 @@ import sys
 hashpart = 30
 m = 2 ** hashpart   # Bloom m-parameter
 k = 7       # Bloom k-parameter
+listen_port = 8888
 
 def getHashes(element):
     H = hashlib.sha224()
@@ -57,5 +58,5 @@ application = tornado.web.Application([
 ], debug=True)
 
 if __name__ == "__main__":
-    application.listen(8888)
+    application.listen(listen_port)
     tornado.ioloop.IOLoop.instance().start()

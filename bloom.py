@@ -10,14 +10,14 @@ import logging
 
 # Constants
 
-hashpart = 30
+hashpart = 33
 m = 2 ** hashpart   # Bloom m-parameter
-k = 7       # Bloom k-parameter
+k = 10       # Bloom k-parameter
 listen_port = 8888
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def getHashes(element):
-    H = hashlib.sha224()
+    H = hashlib.sha384()
     H.update(element)
 
     h = bitarray()
@@ -58,6 +58,38 @@ def term_handler(signum, frame):
     logging.warn("Exiting...")
     sys.exit(0)
 
+def dump_handler(signum, frame):
+    if not dump_children:
+        logging.warn("Caught signal %d. Doing fork and dump...", signum)
+    else:
+        logging.error("Dumper process already running!")
+        return
+
+    try:
+        pid = os.fork()
+    except OSError:
+        logging.error("Unable to fork!")
+
+    if pid == 0:
+        logging.warn("Dumping snapshot...")
+        with open(snap_path, "wb") as f:
+            Bloom.tofile(f)
+        logging.warn("Child exiting.")
+        sys.exit(0)
+    else:
+        dump_children.append(pid)
+
+def child_collector(signum, frame):
+    for cpid in dump_children:
+        try:
+            returned_pid, status = os.waitpid(cpid, os.WNOHANG)
+        except OSError:
+            logging.warn("Child with pid=%d already dead.", cpid)
+            dump_children.remove(cpid)
+        if cpid == returned_pid:
+            logging.warn("Child with pid=%d has finished with exitcode %d. Collected him.", cpid, status / 0x100)
+            dump_children.remove(cpid)
+
 # Init
 
 Bloom = bitarray()
@@ -66,6 +98,8 @@ application = tornado.web.Application([
     (r"/add", CmdAddHandler),
     (r"/check", CmdCheckHandler),
 ], debug=True)
+
+dump_children = []
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -88,6 +122,8 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGTERM, term_handler)
     signal.signal(signal.SIGINT, term_handler)
+    signal.signal(signal.SIGCHLD, child_collector)
+    signal.signal(signal.SIGUSR1, dump_handler)
 
     application.listen(listen_port)
     tornado.ioloop.IOLoop.instance().start()

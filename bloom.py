@@ -69,11 +69,16 @@ def dump_handler(signum, frame):
         pid = os.fork()
     except OSError:
         logging.error("Unable to fork!")
+        return
 
     if pid == 0:
         logging.warn("Dumping snapshot...")
-        with open(snap_path, "wb") as f:
-            Bloom.tofile(f)
+        try:
+            with open(snap_path, "wb") as f:
+                Bloom.tofile(f)
+        except:
+            logging.error("Snapshot dump failed.")
+            sys.exit(10)
         logging.warn("Child exiting.")
         sys.exit(0)
     else:
@@ -86,6 +91,7 @@ def child_collector(signum, frame):
         except OSError:
             logging.warn("Child with pid=%d already dead.", cpid)
             dump_children.remove(cpid)
+            continue
         if cpid == returned_pid:
             logging.warn("Child with pid=%d has finished with exitcode %d. Collected him.", cpid, status / 0x100)
             dump_children.remove(cpid)

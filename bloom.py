@@ -16,6 +16,11 @@ k = 10       # Bloom k-parameter
 listen_port = 8888
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+response_headers = ('Content-Type', 'text/plain; charset="utf-8"')
+miss_response  = "MISSING\n"
+hit_response   = "PRESENT\n"
+added_response = "ADDED\n"
+
 def getHashes(element):
     H = hashlib.sha384()
     H.update(element)
@@ -33,21 +38,39 @@ class CmdAddHandler(tornado.web.RequestHandler):
         for i in hashes:
             Bloom[i] = True
 
-        self.set_header('Content-Type', 'text/plain; charset="utf-8"')
-        self.write("ADDED\n")
+        self.set_header(*response_headers)
+        self.write(added_response)
 
 class CmdCheckHandler(tornado.web.RequestHandler):
     def get(self):
         element = self.get_argument("e", strip=False)
         hashes = getHashes(element)
         
-        self.set_header('Content-Type', 'text/plain; charset="utf-8"')
+        self.set_header(*response_headers)
         for i in hashes:
             if not Bloom[i]:
-                self.write("MISSING\n")
+                self.write(miss_response)
                 return
 
-        self.write("PRESENT\n")
+        self.write(hit_response)
+
+class CmdCheckThenAddHandler(tornado.web.RequestHandler):
+    def get(self):
+        element = self.get_argument("e", strip=False)
+        hashes = getHashes(element)
+
+        present = True
+        for i in hashes:
+            if not Bloom[i]:
+                present = False
+                break
+
+        if not present:
+            for i in hashes:
+                Bloom[i] = True
+
+        self.set_header(*response_headers)
+        self.write(hit_response if present else miss_response)
 
 def term_handler(signum, frame):
     logging.warn("Caught signal %d. Shutting down server...", signum)
@@ -103,6 +126,7 @@ Bloom = bitarray()
 application = tornado.web.Application([
     (r"/add", CmdAddHandler),
     (r"/check", CmdCheckHandler),
+    (r"/checkthenadd", CmdCheckThenAddHandler),
 ], debug=True)
 
 dump_children = []

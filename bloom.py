@@ -1,22 +1,23 @@
 #!/usr/bin/env python
-import tornado.ioloop
-import tornado.web
 from bitarray import bitarray
 import hashlib
 import sys
 import os
 import signal
 import logging
+from gevent.pywsgi import WSGIServer
+from cgi import parse_qs
 
 # Constants
 
 hashpart = 33
 m = 2 ** hashpart   # Bloom m-parameter
 k = 10       # Bloom k-parameter
+listen_address = ''
 listen_port = 8888
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-response_headers = ('Content-Type', 'text/plain; charset="utf-8"')
+response_headers = [('Content-Type', 'text/plain; charset="utf-8"')]
 miss_response  = "MISSING\n"
 hit_response   = "PRESENT\n"
 added_response = "ADDED\n"
@@ -30,56 +31,31 @@ def getHashes(element):
 
     return [ reduce(lambda A, v: A*2+1 if v else A*2, h[i*hashpart:(i+1)*hashpart], 0) for i in xrange(k) ]
 
-class CmdAddHandler(tornado.web.RequestHandler):
-    def get(self):
-        element = self.get_argument("e", strip=False)
-        hashes = getHashes(element)
+def CmdAddHandler(hashes):
+    for i in hashes:
+        Bloom[i] = True
+    return added_response
 
+def CmdCheckHandler(hashes):
+    for i in hashes:
+        if not Bloom[i]:
+            return miss_response
+    return hit_response
+
+def CmdCheckThenAddHandler(hashes):
+    present = True
+    for i in hashes:
+        if not Bloom[i]:
+            present = False
+            break
+    if not present:
         for i in hashes:
             Bloom[i] = True
-
-        self.set_header(*response_headers)
-        self.write(added_response)
-
-class CmdCheckHandler(tornado.web.RequestHandler):
-    def get(self):
-        element = self.get_argument("e", strip=False)
-        hashes = getHashes(element)
-        
-        self.set_header(*response_headers)
-        for i in hashes:
-            if not Bloom[i]:
-                self.write(miss_response)
-                return
-
-        self.write(hit_response)
-
-class CmdCheckThenAddHandler(tornado.web.RequestHandler):
-    def get(self):
-        element = self.get_argument("e", strip=False)
-        hashes = getHashes(element)
-
-        present = True
-        for i in hashes:
-            if not Bloom[i]:
-                present = False
-                break
-
-        if not present:
-            for i in hashes:
-                Bloom[i] = True
-
-        self.set_header(*response_headers)
-        self.write(hit_response if present else miss_response)
+    return hit_response if present else miss_response
 
 def term_handler(signum, frame):
     logging.warn("Caught signal %d. Shutting down server...", signum)
-    tornado.ioloop.IOLoop.instance().stop()
-    logging.warn("Dumping snapshot...")
-    with open(snap_path, "wb") as f:
-        Bloom.tofile(f)
-    logging.warn("Exiting...")
-    sys.exit(0)
+    srv.stop()
 
 def dump_handler(signum, frame):
     if not dump_children:
@@ -119,15 +95,31 @@ def child_collector(signum, frame):
             logging.warn("Child with pid=%d has finished with exitcode %d. Collected him.", cpid, status / 0x100)
             dump_children.remove(cpid)
 
+cmd_handlers = {
+'/add'          :   CmdAddHandler,
+'/check'        :   CmdCheckHandler,
+'/checkthenadd' :   CmdCheckThenAddHandler
+}
+
+def bloom_server(env, start_response):
+    uri = env['PATH_INFO']
+    if uri not in cmd_handlers:
+        start_response('404 Not Found', response_headers)
+        return ['Method not found. Methods allowed: ', ','.join(cmd_handlers.keys())]
+
+    parameters = parse_qs(env.get('QUERY_STRING', ''))
+    if 'e' not in parameters:
+        start_response('400 Bad Request', response_headers)
+        return ['Bad request. Supply "e" parameter in query string.']
+
+    element = parameters["e"][0]
+    hashes = getHashes(element)
+    start_response('200 OK', response_headers)
+    return [ cmd_handlers[uri](hashes) ]
+
 # Init
 
 Bloom = bitarray()
-
-application = tornado.web.Application([
-    (r"/add", CmdAddHandler),
-    (r"/check", CmdCheckHandler),
-    (r"/checkthenadd", CmdCheckThenAddHandler),
-], debug=True)
 
 dump_children = []
 
@@ -155,5 +147,11 @@ if __name__ == "__main__":
     signal.signal(signal.SIGCHLD, child_collector)
     signal.signal(signal.SIGUSR1, dump_handler)
 
-    application.listen(listen_port)
-    tornado.ioloop.IOLoop.instance().start()
+    srv = WSGIServer(('', listen_port), bloom_server, 10000, log=None)
+    srv.serve_forever()
+
+    logging.warn("Server has been shut down. Dumping snapshot...")
+    with open(snap_path, "wb") as f:
+        Bloom.tofile(f)
+    logging.warn("Exiting...")
+    sys.exit(0)

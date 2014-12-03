@@ -147,7 +147,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGCHLD, child_collector)
     signal.signal(signal.SIGUSR1, dump_handler)
 
-    srv = WSGIServer(('', listen_port), bloom_server, 10000)
+    srv = WSGIServer(('', listen_port), bloom_server, 10000, log=None)
     srv.serve_forever()
 
     logging.warn("Server has been shut down. Dumping snapshot...")

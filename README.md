@@ -5,7 +5,7 @@ The `bloom` is an in-memory persistent storage for determining whether an elemen
 Default configuration is sufficient for testing the set of 500,000,000 elements with false-positive probability 0.1%.
 
 ### Installation
-`sudo apt-get install python-bitarray python-gevent
+`sudo apt-get install python-bitarray python-gevent`
 or use `pip` to install corresponding modules.
 
 ### Running

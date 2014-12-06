@@ -1,0 +1,9 @@
+CC=gcc
+EXECUTABLE=bloom
+LIBS=-levent
+SOURCES=bloom.c
+
+all: $(EXECUTABLE)
+
+$(EXECUTABLE): $(SOURCES)
+	$(CC) -o $(EXECUTABLE) $(SOURCES) $(LIBS)

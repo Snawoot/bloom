@@ -104,6 +104,7 @@ void* HandlerTable[][2] = {
 //Storage operations
 int SaveSnap(const bloom_cell *bloom, const char *fname)
 {
+    fputs("Saving snapshot...\n", stderr);
     size_t shouldwrite = (m + (CHAR_BIT - 1)) / CHAR_BIT;
     FILE *f = fopen(fname, "wb");
     if (f) {
@@ -112,6 +113,7 @@ int SaveSnap(const bloom_cell *bloom, const char *fname)
             fprintf(stderr, "Should write: %ld bytes. Written %ld bytes.\n", shouldwrite, bwritten);
             return -1;
         }
+        fclose(f);
         return 0;
     } else {
         fputs("Error opening file for writting.\n", stderr);
@@ -129,6 +131,7 @@ int LoadSnap(bloom_cell *bloom, const char *fname)
             fprintf(stderr, "Should read: %ld bytes. Read %ld bytes.\n", shouldread, bread);
             return -1;
         }
+        fclose(f);
         return 0;
     } else {
         fputs("Error opening file for reading.\n", stderr);
@@ -137,21 +140,32 @@ int LoadSnap(bloom_cell *bloom, const char *fname)
 }
 
 //Server globals
-struct evhttp *Server = NULL;
+struct event_base *base = NULL;
+struct evhttp *http = NULL;
+struct evhttp_bound_socket *handle = NULL;
+
+//Signal handlers
+void term_handler(int signo)
+{
+    event_base_loopexit(base, NULL);
+}
 
 //Main
 int main(int argc, char *argv[])
 {
+    //Get args
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <snapshot_file>\n", argv[0]);
         return 1;
     }
     const char* snap_path = argv[1];
 
+    //Allocate memory
     fprintf(stderr, "Allocating arena with size %.2f MBytes ...\n", (float)m / CHAR_BIT / MEGA);
     Bloom = malloc( (m + ( CHAR_BIT - 1)) / CHAR_BIT ); // Ceil byte length: bytes = bits + 7 / 8
 
 
+    //Load or create snapshot file
     if (!access(snap_path, F_OK)) {
         fputs("Loading snapshot...\n", stderr);
         if (LoadSnap(Bloom, snap_path)) {
@@ -171,15 +185,6 @@ int main(int argc, char *argv[])
         fputs("Initial snapshot written.\n", stderr);
     }
 
-    if (!event_init()) {
-        fputs("Failed to init libevent.\n", stderr);
-        return -1;
-    }
-    Server = evhttp_start(BIND_ADDRESS, BIND_PORT);
-    if (!Server) {
-        fputs("Failed to init HTTP-server.\n", stderr);
-        return -1;
-    }
 
     void OnReq(struct evhttp_request *req, void *arg)
     {
@@ -236,14 +241,46 @@ int main(int argc, char *argv[])
         evhttp_send_reply(req, HTTP_OK, "OK", OutBuf);
         evhttp_clear_headers(&params);
     };
-    evhttp_set_gencb(Server, OnReq, 0);
 
-    if (event_dispatch() == -1) {
+    base = event_base_new();
+    if (!base) { 
+        fputs("Couldn't create an event_base: exiting\n", stderr);
+        return -1;
+    }
+
+    http = evhttp_new(base);
+    if (!http) { 
+        fputs("couldn't create evhttp. Exiting.\n", stderr);
+        return -1;
+    }
+    evhttp_set_gencb(http, OnReq, NULL);
+
+    handle = evhttp_bind_socket_with_handle(http, BIND_ADDRESS, BIND_PORT);
+    if (!handle)
+    { 
+        fputs("couldn't bind to port 8888. Exiting.\n", stderr);
+        return -1;
+    }
+
+    if (signal(SIGINT, term_handler) == SIG_ERR) {
+        fputs("Unable to set signal handler!", stderr);
+        return -1;
+    }
+    if (signal(SIGTERM, term_handler) == SIG_ERR) {
+        fputs("Unable to set signal handler!", stderr);
+        return -1;
+    }
+
+    if (event_base_dispatch(base) == -1) {
         fputs("Failed to run message loop.\n", stderr);
         return -1;
     }
 
-    evhttp_free(Server);
+    fputs("Exiting...\n", stderr);
+    SaveSnap(Bloom, snap_path);
+    evhttp_del_accept_socket(http, handle);
+    evhttp_free(http);
+    event_base_free(base);
     free(Bloom);
     return 0;
 }

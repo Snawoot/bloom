@@ -6,4 +6,4 @@ SOURCES=bloom.c
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	$(CC) -o $(EXECUTABLE) $(SOURCES) $(LIBS)
+	$(CC) -ggdb -o $(EXECUTABLE) $(SOURCES) $(LIBS)

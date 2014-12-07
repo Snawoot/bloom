@@ -6,7 +6,9 @@
 #include <sys/queue.h>
 #include <evhttp.h>
 #include <limits.h>
+#include <fcntl.h>
 #include <openssl/sha.h>
+#include <signal.h>
 
 // Bloom-filter parameters
 #define hashpart 33
@@ -92,27 +94,90 @@ const char *CmdCheckThenAddHandler(bloom_cell *bloom, const bloom_cell *hashes)
     return present ? hit_response : miss_response;
 }
 
+//Request routing
 void* HandlerTable[][2] = {
 {"/add",            CmdAddHandler           },
 {"/check",          CmdCheckHandler         },
 {"/checkthenadd",   CmdCheckThenAddHandler  },
 };
 
-//Main
-int main()
+//Storage operations
+int SaveSnap(const bloom_cell *bloom, const char *fname)
 {
+    size_t shouldwrite = (m + (CHAR_BIT - 1)) / CHAR_BIT;
+    FILE *f = fopen(fname, "wb");
+    if (f) {
+        size_t bwritten = fwrite(bloom, 1, shouldwrite, f);
+        if (bwritten != shouldwrite) {
+            fprintf(stderr, "Should write: %ld bytes. Written %ld bytes.\n", shouldwrite, bwritten);
+            return -1;
+        }
+        return 0;
+    } else {
+        fputs("Error opening file for writting.\n", stderr);
+        return -1;
+    }
+}
+
+int LoadSnap(bloom_cell *bloom, const char *fname)
+{
+    FILE *f = fopen(fname, "rb");
+    if (f) {
+        size_t shouldread = (m + (CHAR_BIT - 1)) / CHAR_BIT;
+        size_t bread = fread(bloom, 1, shouldread, f);
+        if (bread != shouldread) {
+            fprintf(stderr, "Should read: %ld bytes. Read %ld bytes.\n", shouldread, bread);
+            return -1;
+        }
+        return 0;
+    } else {
+        fputs("Error opening file for reading.\n", stderr);
+        return -1;
+    }
+}
+
+//Server globals
+struct evhttp *Server = NULL;
+
+//Main
+int main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <snapshot_file>\n", argv[0]);
+        return 1;
+    }
+    const char* snap_path = argv[1];
+
     fprintf(stderr, "Allocating arena with size %.2f MBytes ...\n", (float)m / CHAR_BIT / MEGA);
     Bloom = malloc( (m + ( CHAR_BIT - 1)) / CHAR_BIT ); // Ceil byte length: bytes = bits + 7 / 8
 
-    if (!event_init())
-    {
-        fputs("Failed to init libevent.", stderr);
+
+    if (!access(snap_path, F_OK)) {
+        fputs("Loading snapshot...\n", stderr);
+        if (LoadSnap(Bloom, snap_path)) {
+            fputs("Unable to load snapshot!\n", stderr);
+            return -1;
+        }
+        fputs("Snapshot loaded.\n", stderr);
+    } else {
+        fputs("Initializing new file storage...\n", stderr);
+        size_t shouldwrite = (m + (CHAR_BIT - 1)) / CHAR_BIT;
+        memset(Bloom, 0, shouldwrite); 
+
+        if (SaveSnap(Bloom, snap_path)) {
+            fputs("Unable to save initial snapshot!\n", stderr);
+            return -1;
+        }
+        fputs("Initial snapshot written.\n", stderr);
+    }
+
+    if (!event_init()) {
+        fputs("Failed to init libevent.\n", stderr);
         return -1;
     }
-    struct evhttp *Server = evhttp_start(BIND_ADDRESS, BIND_PORT);
-    if (!Server)
-    {
-        fputs("Failed to init HTTP-server.", stderr);
+    Server = evhttp_start(BIND_ADDRESS, BIND_PORT);
+    if (!Server) {
+        fputs("Failed to init HTTP-server.\n", stderr);
         return -1;
     }
 
@@ -173,9 +238,8 @@ int main()
     };
     evhttp_set_gencb(Server, OnReq, 0);
 
-    if (event_dispatch() == -1)
-    {
-        fputs("Failed to run message loop.", stderr);
+    if (event_dispatch() == -1) {
+        fputs("Failed to run message loop.\n", stderr);
         return -1;
     }
 

@@ -42,7 +42,7 @@ size_t *Hashes(const char* bytes)
     for (i=0; i < k; i++) {
         bloom_cell curr_key=0;
         for (j=0; j<hashpart; j++,n++) {
-            bit = (hashbuf[n / CHAR_BIT] & ((unsigned char)1 << (n % CHAR_BIT))) !=0 ? 1 : 0;
+            bit = (hashbuf[n / CHAR_BIT] & ((unsigned char)1 << ((CHAR_BIT - 1) - (n % CHAR_BIT)))) !=0 ? 1 : 0;
             curr_key = (curr_key << 1) | bit;
         }
         Ki[i] = curr_key;
@@ -53,12 +53,12 @@ size_t *Hashes(const char* bytes)
 //Bloom operations
 bool GetBit(bloom_cell *bv, size_t n)
 {
-    return (bv[n / BITS_PER_CELL] & ((bloom_cell)1 << (n % BITS_PER_CELL))) != 0;
+    return (bv[n / BITS_PER_CELL] & ((bloom_cell)1 << ((BITS_PER_CELL - 1) - (n % BITS_PER_CELL)))) != 0;
 }
 
 void JumpBit(bloom_cell *bv, size_t n)
 {
-    bv[n / BITS_PER_CELL] |= ((bloom_cell)1 << (n % BITS_PER_CELL ));
+    bv[n / BITS_PER_CELL] |= ((bloom_cell)1 << ((BITS_PER_CELL - 1) - (n % BITS_PER_CELL )) );
 }
 
 //URI (commands) handlers

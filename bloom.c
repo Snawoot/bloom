@@ -31,10 +31,10 @@ const char added_response[] = "ADDED\n";
 typedef unsigned long bloom_cell;
 bloom_cell *Bloom = NULL;
 unsigned char hashbuf[SHA384_DIGEST_LENGTH];
-bloom_cell Ki[k];
+size_t Ki[k];
 
 //Hasher
-bloom_cell *Hashes(const char* bytes)
+size_t *Hashes(const char* bytes)
 {
     SHA384(bytes,  strnlen(bytes, STR_MAX), hashbuf);
 
@@ -42,7 +42,7 @@ bloom_cell *Hashes(const char* bytes)
     for (i=0; i < k; i++) {
         bloom_cell curr_key=0;
         for (j=0; j<hashpart; j++,n++) {
-            bit = (hashbuf[n / CHAR_BIT] & ((unsigned char)1 << ((CHAR_BIT - 1) - (n % CHAR_BIT)))) !=0 ? 1 : 0;
+            bit = (hashbuf[n / CHAR_BIT] & ((unsigned char)1 << (n % CHAR_BIT))) !=0 ? 1 : 0;
             curr_key = (curr_key << 1) | bit;
         }
         Ki[i] = curr_key;
@@ -53,16 +53,16 @@ bloom_cell *Hashes(const char* bytes)
 //Bloom operations
 bool GetBit(bloom_cell *bv, size_t n)
 {
-    return (bv[n / BITS_PER_CELL] & ((bloom_cell)1 << ((BITS_PER_CELL - 1) - (n % BITS_PER_CELL)))) != 0;
+    return (bv[n / BITS_PER_CELL] & ((bloom_cell)1 << (n % BITS_PER_CELL))) != 0;
 }
 
 void JumpBit(bloom_cell *bv, size_t n)
 {
-    bv[n / BITS_PER_CELL] |= ((bloom_cell)1 << ((BITS_PER_CELL - 1) - (n % BITS_PER_CELL )) );
+    bv[n / BITS_PER_CELL] |= ((bloom_cell)1 << (n % BITS_PER_CELL ));
 }
 
 //URI (commands) handlers
-const char *CmdAddHandler(bloom_cell *bloom, const bloom_cell *hashes)
+const char *CmdAddHandler(bloom_cell *bloom, const size_t hashes[])
 {
     int i;
     for (i=0; i<k; i++)
@@ -70,7 +70,7 @@ const char *CmdAddHandler(bloom_cell *bloom, const bloom_cell *hashes)
     return added_response;
 }
 
-const char *CmdCheckHandler(bloom_cell *bloom, const bloom_cell *hashes)
+const char *CmdCheckHandler(bloom_cell *bloom, const size_t hashes[])
 {
     int i;
     for (i=0; i<k; i++)
@@ -79,7 +79,7 @@ const char *CmdCheckHandler(bloom_cell *bloom, const bloom_cell *hashes)
     return hit_response;
 }
 
-const char *CmdCheckThenAddHandler(bloom_cell *bloom, const bloom_cell *hashes)
+const char *CmdCheckThenAddHandler(bloom_cell *bloom, const size_t hashes[])
 {
     bool present = true;
     int i;
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
         }
 
         int i;
-        const char* (*Operation)(bloom_cell *, bloom_cell *) = NULL;
+        const char* (*Operation)(bloom_cell *, size_t []) = NULL;
         for (i=0; i< sizeof HandlerTable/ sizeof HandlerTable[0] ; i++)
             if (strncmp(HandlerTable[i][0], path, STR_MAX) == 0) {
                 Operation = HandlerTable[i][1];

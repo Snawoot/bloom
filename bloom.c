@@ -29,11 +29,10 @@ const char hit_response[]   = "PRESENT\n";
 const char added_response[] = "ADDED\n";
 
 typedef unsigned char bloom_cell;
-bloom_cell *Bloom = NULL;
-unsigned char hashbuf[SHA384_DIGEST_LENGTH];
-size_t Ki[k];
 
 //Hasher
+unsigned char hashbuf[SHA384_DIGEST_LENGTH];
+size_t Ki[k];
 size_t *Hashes(const char* bytes)
 {
     SHA384(bytes,  strnlen(bytes, STR_MAX), hashbuf);
@@ -143,11 +142,51 @@ int LoadSnap(bloom_cell *bloom, const char *fname)
 struct event_base *base = NULL;
 struct evhttp *http = NULL;
 struct evhttp_bound_socket *handle = NULL;
+bloom_cell *Bloom = NULL;
+pid_t dumper;
+bool dumper_active = false;
+char *snap_path = NULL;
 
 //Signal handlers
 void term_handler(int signo)
 {
     event_base_loopexit(base, NULL);
+}
+
+void dump_handler(int signo)
+{
+    if (dumper_active)
+        return;
+    dumper_active = true;
+    pid_t pid = fork();
+    if (pid == 0) {
+        if (snap_path && Bloom) {
+            SaveSnap(Bloom, snap_path);
+            exit(0);
+        }
+        else {
+            fputs("Global pointers not set!\n", stderr);
+            exit(11);
+        }
+    } else {
+        if (pid == -1) {
+            fputs("Unable to fork!\n", stderr);
+            dumper_active = false;
+        } else
+        {
+            dumper = pid;
+        }
+    }
+}
+
+void child_collector(int signo)
+{
+    int status;
+    pid_t pid = waitpid(dumper, &status, WNOHANG);
+    if (pid == dumper) {
+        dumper_active = false;
+        fprintf(stderr, "Dumper process %d exited with code %d. Collected him.\n", pid, WEXITSTATUS(status));
+    }
 }
 
 //Main
@@ -158,7 +197,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Usage: %s <snapshot_file>\n", argv[0]);
         return 1;
     }
-    const char* snap_path = argv[1];
+    snap_path = argv[1];
 
     //Allocate memory
     fprintf(stderr, "Allocating arena with size %.2f MBytes ...\n", (float)m / CHAR_BIT / MEGA);
@@ -263,11 +302,19 @@ int main(int argc, char *argv[])
     }
 
     if (signal(SIGINT, term_handler) == SIG_ERR) {
-        fputs("Unable to set signal handler!", stderr);
+        fputs("Unable to set SIGINT handler!", stderr);
         return -1;
     }
     if (signal(SIGTERM, term_handler) == SIG_ERR) {
-        fputs("Unable to set signal handler!", stderr);
+        fputs("Unable to set SIGTERM handler!", stderr);
+        return -1;
+    }
+    if (signal(SIGCHLD, child_collector) == SIG_ERR) {
+        fputs("Unable to set SIGCHLD handler!", stderr);
+        return -1;
+    }
+    if (signal(SIGUSR1, dump_handler) == SIG_ERR) {
+        fputs("Unable to set SIGUSR1 handler!", stderr);
         return -1;
     }
 

@@ -1,6 +1,6 @@
 CC=gcc
 EXECUTABLE=bloom
-LIBS=-levent
+LIBS=-levent -lcrypto
 SOURCES=bloom.c
 
 all: $(EXECUTABLE)

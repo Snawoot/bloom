@@ -45,12 +45,21 @@ const unsigned char *Hash(const char* bytes)
     fprintf(stderr, "%s\n", hexdigest);
     #endif
 
-    int i=0, j=0;
-    bool bit;
-    for (; i < k; i++) {
-        for (; ; j++) {
-            bit = (hashbuf[j / CHAR_BIT]
+    int bit, j, n=0;
+    for (i=0; i < k; i++) {
+        bloom_cell curr_key=0;
+        for (j=0; j<hashpart; j++,n++) {
+            bit = (hashbuf[n / CHAR_BIT] & ((unsigned char)1 << ((CHAR_BIT - 1) - (n % CHAR_BIT)))) !=0 ? 1 : 0;
+            curr_key = (curr_key << 1) | bit;
+            #ifdef DEBUGHASH
+            fputc(bit ? '1' : '0', stderr);
+            #endif
         }
+        #ifdef DEBUGHASH
+        fputc('\n', stderr);
+        fprintf(stderr, "%ld\n", curr_key);
+        #endif
+        Ki[i] = curr_key;
     }
     return hashbuf;
 }
@@ -62,7 +71,7 @@ bool GetBit(bloom_cell *bv, size_t n)
 
 void JumpBit(bloom_cell *bv, size_t n)
 {
-    bv[n / (sizeof(bloom_cell) * CHAR_BIT)] |= ((bloom_cell)1 << ( n % (sizeof(bloom_cell) * CHAR_BIT) ) );
+    bv[n / BITS_PER_CELL] |= ((bloom_cell)1 << ( n % BITS_PER_CELL ) );
 }
 
 int main()

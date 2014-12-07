@@ -13,57 +13,42 @@
 #define m ( 1L << hashpart )
 #define k 10
 
+// Network parameters
 #define BIND_ADDRESS "0.0.0.0"
 #define BIND_PORT 8888
 
+// Internal definitions
 #define MIME_TYPE "Content-Type", "text/html; charset=UTF-8"
 #define MEGA (1<<20)
 #define STR_MAX 1024
-#define DEBUGHASH
 #define BITS_PER_CELL (sizeof(bloom_cell) * CHAR_BIT)
+const char miss_response[]  = "MISSING\n";
+const char hit_response[]   = "PRESENT\n";
+const char added_response[] = "ADDED\n";
 
 typedef unsigned long bloom_cell;
 bloom_cell *Bloom = NULL;
 unsigned char hashbuf[SHA384_DIGEST_LENGTH];
 bloom_cell Ki[k];
 
-#ifdef DEBUGHASH
-char hexdigits[] = "0123456789abcdef";
-#endif
-
-const unsigned char *Hash(const char* bytes)
+//Hasher
+bloom_cell *Hashes(const char* bytes)
 {
     SHA384(bytes,  strnlen(bytes, STR_MAX), hashbuf);
-    #ifdef DEBUGHASH
-    char hexdigest[SHA384_DIGEST_LENGTH * 2 + 1];
-    int i;
-    for (i=0; i < SHA384_DIGEST_LENGTH; i++) {
-        hexdigest[2*i]   = hexdigits[hashbuf[i] >> (CHAR_BIT / 2)];
-        hexdigest[2*i+1] = hexdigits[hashbuf[i] & 0xF ];
-    }
-    hexdigest[sizeof(hexdigest)-1]='\0';
-    fprintf(stderr, "%s\n", hexdigest);
-    #endif
 
-    int bit, j, n=0;
+    int bit, i, j, n=0;
     for (i=0; i < k; i++) {
         bloom_cell curr_key=0;
         for (j=0; j<hashpart; j++,n++) {
             bit = (hashbuf[n / CHAR_BIT] & ((unsigned char)1 << ((CHAR_BIT - 1) - (n % CHAR_BIT)))) !=0 ? 1 : 0;
             curr_key = (curr_key << 1) | bit;
-            #ifdef DEBUGHASH
-            fputc(bit ? '1' : '0', stderr);
-            #endif
         }
-        #ifdef DEBUGHASH
-        fputc('\n', stderr);
-        fprintf(stderr, "%ld\n", curr_key);
-        #endif
         Ki[i] = curr_key;
     }
-    return hashbuf;
+    return Ki;
 }
 
+//Bloom operations
 bool GetBit(bloom_cell *bv, size_t n)
 {
     return (bv[n / BITS_PER_CELL] & ((bloom_cell)1 << ((BITS_PER_CELL - 1) - (n % BITS_PER_CELL)))) != 0;
@@ -74,6 +59,46 @@ void JumpBit(bloom_cell *bv, size_t n)
     bv[n / BITS_PER_CELL] |= ((bloom_cell)1 << ((BITS_PER_CELL - 1) - (n % BITS_PER_CELL )) );
 }
 
+//URI (commands) handlers
+const char *CmdAddHandler(bloom_cell *bloom, const bloom_cell *hashes)
+{
+    int i;
+    for (i=0; i<k; i++)
+        JumpBit(bloom, hashes[i]);
+    return added_response;
+}
+
+const char *CmdCheckHandler(bloom_cell *bloom, const bloom_cell *hashes)
+{
+    int i;
+    for (i=0; i<k; i++)
+        if (!GetBit(bloom, hashes[i]))
+            return miss_response;
+    return hit_response;
+}
+
+const char *CmdCheckThenAddHandler(bloom_cell *bloom, const bloom_cell *hashes)
+{
+    bool present = true;
+    int i;
+    for (i=0; i<k; i++)
+        if (!GetBit(bloom, hashes[i])) {
+            present = false;
+            break;
+        }
+    if (!present)
+        for (i=0; i<k; i++)
+            JumpBit(bloom, hashes[i]);
+    return present ? hit_response : miss_response;
+}
+
+void* HandlerTable[][2] = {
+{"/add",            CmdAddHandler           },
+{"/check",          CmdCheckHandler         },
+{"/checkthenadd",   CmdCheckThenAddHandler  },
+};
+
+//Main
 int main()
 {
     fprintf(stderr, "Allocating arena with size %.2f MBytes ...\n", (float)m / CHAR_BIT / MEGA);
@@ -108,6 +133,10 @@ int main()
             evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", OutBuf);
             return;
         }
+        const char *path =  evhttp_uri_get_path(HTTPURI);
+        if (!path) {
+            evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", OutBuf);
+        }
         const char *query_string = evhttp_uri_get_query(HTTPURI);
         if (!query_string) {
             evhttp_send_reply(req, HTTP_BADREQUEST, "Element Required", OutBuf);
@@ -122,9 +151,23 @@ int main()
             return;
         }
 
-        Hash(element);
+        int i;
+        const char* (*Operation)(bloom_cell *, bloom_cell *) = NULL;
+        for (i=0; i< sizeof HandlerTable/ sizeof HandlerTable[0] ; i++)
+            if (strncmp(HandlerTable[i][0], path, STR_MAX) == 0) {
+                Operation = HandlerTable[i][1];
+                break;
+            }
+        if (!Operation) {
+            evhttp_clear_headers(&params);
+            evhttp_send_reply(req, HTTP_NOTFOUND, "Not Found", OutBuf);
+            return;
+        }
+
+        const char *response = Operation(Bloom, Hashes(element));
+
         evhttp_add_header(Headers, MIME_TYPE);
-        evbuffer_add_printf(OutBuf, "Response: %s\n", element);
+        evbuffer_add_printf(OutBuf, response);
         evhttp_send_reply(req, HTTP_OK, "OK", OutBuf);
         evhttp_clear_headers(&params);
     };

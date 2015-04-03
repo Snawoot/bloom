@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <openssl/sha.h>
 #include <signal.h>
+#include <unistd.h>
 
 // Bloom-filter parameters
 #define hashpart 33

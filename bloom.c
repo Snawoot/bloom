@@ -141,6 +141,7 @@ int LoadSnap(bloom_cell *bloom, const char *fname)
 
 //Server globals
 struct event_base *base = NULL;
+struct event *dump_event = NULL;
 struct evhttp *http = NULL;
 struct evhttp_bound_socket *handle = NULL;
 bloom_cell *Bloom = NULL;
@@ -154,7 +155,7 @@ void term_handler(int signo)
     event_base_loopexit(base, NULL);
 }
 
-void dump_handler(int signo)
+void dump_handler(evutil_socket_t fd, short which, void *arg)
 {
     if (dumper_active)
         return;
@@ -188,6 +189,12 @@ void child_collector(int signo)
         dumper_active = false;
         fprintf(stderr, "Dumper process %d exited with code %d. Collected him.\n", pid, WEXITSTATUS(status));
     }
+}
+
+void crash(char *msg, int code)
+{
+    fputs(msg, stderr);
+    exit(code);
 }
 
 //Main
@@ -282,52 +289,40 @@ int main(int argc, char *argv[])
         evhttp_clear_headers(&params);
     };
 
-    base = event_base_new();
-    if (!base) { 
-        fputs("Couldn't create an event_base: exiting\n", stderr);
-        return -1;
-    }
+    if (!(base = event_base_new()))
+        crash("Couldn't create an event_base: exiting\n", -1);
 
-    http = evhttp_new(base);
-    if (!http) { 
-        fputs("couldn't create evhttp. Exiting.\n", stderr);
-        return -1;
-    }
+    if (!(http = evhttp_new(base)))
+        crash("Couldn't create evhttp. Exiting.\n", -1);
     evhttp_set_gencb(http, OnReq, NULL);
 
-    handle = evhttp_bind_socket_with_handle(http, BIND_ADDRESS, BIND_PORT);
-    if (!handle)
-    { 
-        fputs("couldn't bind to port 8888. Exiting.\n", stderr);
-        return -1;
-    }
+    if (!(handle = evhttp_bind_socket_with_handle(http, BIND_ADDRESS, BIND_PORT)))
+        crash("couldn't bind to port 8888. Exiting.\n", -1);
 
-    if (signal(SIGINT, term_handler) == SIG_ERR) {
-        fputs("Unable to set SIGINT handler!", stderr);
-        return -1;
-    }
-    if (signal(SIGTERM, term_handler) == SIG_ERR) {
-        fputs("Unable to set SIGTERM handler!", stderr);
-        return -1;
-    }
-    if (signal(SIGCHLD, child_collector) == SIG_ERR) {
-        fputs("Unable to set SIGCHLD handler!", stderr);
-        return -1;
-    }
-    if (signal(SIGUSR1, dump_handler) == SIG_ERR) {
-        fputs("Unable to set SIGUSR1 handler!", stderr);
-        return -1;
-    }
+    if (signal(SIGINT, term_handler) == SIG_ERR)
+        crash("Unable to set SIGINT handler!", -1);
 
-    if (event_base_dispatch(base) == -1) {
-        fputs("Failed to run message loop.\n", stderr);
-        return -1;
-    }
+    if (signal(SIGTERM, term_handler) == SIG_ERR)
+        crash("Unable to set SIGTERM handler!", -1);
+
+    if (signal(SIGCHLD, child_collector) == SIG_ERR)
+        crash("Unable to set SIGCHLD handler!", -1);
+    
+    //This signal handled by event loop in order to avoid malloc deadlock
+    if ((dump_event = evsignal_new(base, SIGUSR1, dump_handler, NULL)) == NULL)
+        crash("Unable to create SIGUSR1 handler!", -1);
+    else 
+        if (event_add(dump_event, NULL) == -1)
+            crash("Unable to add SIGUSR1 handler!", -1);
+
+    if (event_base_dispatch(base) == -1)
+        crash("Failed to run message loop.\n", -1);
 
     fputs("Exiting...\n", stderr);
     SaveSnap(Bloom, snap_path);
     evhttp_del_accept_socket(http, handle);
     evhttp_free(http);
+    event_free(dump_event);
     event_base_free(base);
     free(Bloom);
     return 0;

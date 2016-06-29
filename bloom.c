@@ -201,6 +201,8 @@ void crash(char *msg, int code)
 //Main
 int main(int argc, char *argv[])
 {
+    signal(SIGUSR1, SIG_IGN); //Suppress dumper signals during startup
+
     //Get args
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <snapshot_file>\n", argv[0]);

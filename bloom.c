@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/queue.h>
+#include <sys/wait.h>
 #include <evhttp.h>
 #include <limits.h>
 #include <fcntl.h>
@@ -284,7 +285,7 @@ int main(int argc, char *argv[])
         const char *response = Operation(Bloom, Hashes(element));
 
         evhttp_add_header(Headers, MIME_TYPE);
-        evbuffer_add_printf(OutBuf, response);
+        evbuffer_add(OutBuf, response, strlen(response));
         evhttp_send_reply(req, HTTP_OK, "OK", OutBuf);
         evhttp_clear_headers(&params);
     };

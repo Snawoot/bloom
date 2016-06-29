@@ -1,0 +1,1 @@
+-e git+https://github.com/pwdyson/inflect.py@d4e57f041394bb246d8f9c360c20c19e44eeda03#egg=inflect

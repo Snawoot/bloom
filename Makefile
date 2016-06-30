@@ -5,6 +5,7 @@ LIBS=-levent
 STATIC_LIBS=-ldl
 OBJ=bloom.o sighandlers.o bf_storage.o util.o bf_ops.o commands.o handler.o bf_hash.o md6_nist.o md6_mode.o md6_compress.o
 DEPS=globals.h sighandlers.h bf_storage.h bf_types.h util.h bf_ops.h commands.h handler.h bf_hash.h md6.h md6_nist.h
+PREFIX=/usr/local
 
 all: $(EXECUTABLE)
 
@@ -24,3 +25,6 @@ bloom.o: bloom.c $(DEPS) globals.c
 
 clean:
 	rm -f $(EXECUTABLE) $(EXECUTABLE).static *.o
+
+install: $(EXECUTABLE)
+	install -m 775 $< $(PREFIX)/bin

@@ -75,9 +75,6 @@ bloom_filter_t *bf_create(bf_m_t m, bf_k_t k) {
 
     _bf_make_m_power_of_two(m, &aligned_m, &hp);
 
-    if (hp * k > BF_HASH_MAX_WIDTH)
-        return NULL;
-
     size_t cells =  (aligned_m + ( BF_BITS_PER_CELL - 1)) / BF_BITS_PER_CELL ;
 
     bf_cell_t *space = calloc(cells, sizeof(bf_cell_t));

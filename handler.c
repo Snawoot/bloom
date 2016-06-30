@@ -5,7 +5,6 @@
 #include "commands.h"
 #include "globals.h"
 #include "defines.h"
-#include "hash.h"
 
 void OnReq(struct evhttp_request *req, void *arg)
 {
@@ -43,7 +42,7 @@ void OnReq(struct evhttp_request *req, void *arg)
     }
 
     int i;
-    const char* (*Operation)(bloom_cell *, uint64_t []) = NULL;
+    const char* (*Operation)(bloom_cell *, const char []) = NULL;
     for (i=0; i< sizeof HandlerTable/ sizeof HandlerTable[0] ; i++)
         if (strncmp(HandlerTable[i][0], path, STR_MAX) == 0) {
             Operation = HandlerTable[i][1];
@@ -55,8 +54,7 @@ void OnReq(struct evhttp_request *req, void *arg)
         return;
     }
 
-    uint64_t Ki[k];
-    const char *response = Operation(Bloom, Hashes(element, Ki));
+    const char *response = Operation(Bloom, element);
 
     evhttp_add_header(Headers, MIME_TYPE);
     evbuffer_add(OutBuf, response, strlen(response));

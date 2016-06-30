@@ -4,7 +4,7 @@
 #include "defines.h"
 
 //Hasher
-uint64_t *Hashes(const char* bytes, uint64_t *Ki)
+uint64_t *bf_hashes(const char* bytes, uint64_t *Ki)
 {
     unsigned char hashbuf[SHA384_DIGEST_LENGTH];
     SHA384(bytes,  strlen(bytes), hashbuf);

@@ -1,4 +1,8 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include "types.h"
-bool GetBit(bloom_cell *, uint64_t);
-void JumpBit(bloom_cell *, uint64_t);
+bool bf_test_bit(bloom_cell *, uint64_t);
+void bf_jump_bit(bloom_cell *, uint64_t);
+void bf_add(bloom_cell *, const char []);
+bool bf_check(bloom_cell *, const char []);
+bool bf_check_then_add(bloom_cell *, const char []);

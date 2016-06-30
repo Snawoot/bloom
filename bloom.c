@@ -5,7 +5,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "defines.h"
 #include "sighandlers.h"
 #include "bf_ops.h"
 #include "bf_storage.h"
@@ -14,6 +13,9 @@
 #include "handler.h"
 
 #include "globals.c"
+
+#define BIND_ADDRESS "0.0.0.0"
+#define BIND_PORT 8889
 
 //Main
 int main(int argc, char *argv[])

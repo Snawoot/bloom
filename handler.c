@@ -4,7 +4,8 @@
 #include "bf_types.h"
 #include "commands.h"
 #include "globals.h"
-#include "defines.h"
+
+#define MIME_TYPE "Content-Type", "text/html; charset=UTF-8"
 
 void OnReq(struct evhttp_request *req, void *arg)
 {
@@ -44,7 +45,7 @@ void OnReq(struct evhttp_request *req, void *arg)
     int i;
     const char* (*Operation)(bloom_filter_t *, const char []) = NULL;
     for (i=0; i< sizeof HandlerTable/ sizeof HandlerTable[0] ; i++)
-        if (strncmp(HandlerTable[i][0], path, STR_MAX) == 0) {
+        if (strcmp(HandlerTable[i][0], path) == 0) {
             Operation = HandlerTable[i][1];
             break;
         }

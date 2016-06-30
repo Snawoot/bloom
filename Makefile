@@ -4,7 +4,7 @@ EXECUTABLE=bloom
 LIBS=-levent -lcrypto
 STATIC_LIBS=-ldl
 OBJ=bloom.o sighandlers.o bf_storage.o util.o bf_ops.o commands.o handler.o bf_hash.o
-DEPS=defines.h globals.h sighandlers.h bf_storage.h bf_types.h util.h bf_ops.h commands.h handler.h bf_hash.h
+DEPS=globals.h sighandlers.h bf_storage.h bf_types.h util.h bf_ops.h commands.h handler.h bf_hash.h
 
 all: $(EXECUTABLE)
 

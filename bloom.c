@@ -7,7 +7,9 @@
 
 #include "defines.h"
 #include "sighandlers.h"
-#include "storage.h"
+#include "bf_ops.h"
+#include "bf_storage.h"
+#include "bf_types.h"
 #include "util.h"
 #include "handler.h"
 
@@ -26,24 +28,24 @@ int main(int argc, char *argv[])
     snap_path = argv[1];
 
     //Allocate memory
-    fprintf(stderr, "Allocating arena with size %.2f MBytes ...\n", (float)m / CHAR_BIT / MEGA);
-    Bloom = malloc( (m + ( CHAR_BIT - 1)) / CHAR_BIT ); // Ceil byte length: bytes = bits + 7 / 8
+    fprintf(stderr, "Creating space ...\n");
+    Bloom = bf_create(7188793784, 10);
+    if (!Bloom)
+        crash("Couldn`t initialize bloom filter with given parameters\n", -1);
 
 
     //Load or create snapshot file
     if (!access(snap_path, F_OK)) {
         fputs("Loading snapshot...\n", stderr);
-        if (LoadSnap(Bloom, snap_path)) {
+        if (bf_load_from_file(Bloom, snap_path)) {
             fputs("Unable to load snapshot!\n", stderr);
             return -1;
         }
         fputs("Snapshot loaded.\n", stderr);
     } else {
         fputs("Initializing new file storage...\n", stderr);
-        size_t shouldwrite = (m + (CHAR_BIT - 1)) / CHAR_BIT;
-        memset(Bloom, 0, shouldwrite); 
 
-        if (SaveSnap(Bloom, snap_path)) {
+        if (bf_dump_to_file(Bloom, snap_path)) {
             fputs("Unable to save initial snapshot!\n", stderr);
             return -1;
         }
@@ -80,11 +82,11 @@ int main(int argc, char *argv[])
         crash("Failed to run message loop.\n", -1);
 
     fputs("Exiting...\n", stderr);
-    SaveSnap(Bloom, snap_path);
+    bf_dump_to_file(Bloom, snap_path);
     evhttp_del_accept_socket(http, handle);
     evhttp_free(http);
     event_free(dump_event);
     event_base_free(base);
-    free(Bloom);
+    bf_destroy(Bloom);
     return 0;
 }

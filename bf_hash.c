@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <openssl/sha.h>
-#include "defines.h"
+#include "bf_types.h"
 
 //Hasher
-uint64_t *Hashes(const char* bytes, uint64_t *Ki)
+uint64_t *bf_hashes(const char* bytes, bf_m_t *Ki, bf_k_t k, bf_hp_t hashpart)
 {
     unsigned char hashbuf[SHA384_DIGEST_LENGTH];
     SHA384(bytes,  strlen(bytes), hashbuf);

@@ -6,7 +6,7 @@
 #include <evhttp.h>
 #include <unistd.h>
 #include "globals.h"
-#include "storage.h"
+#include "bf_storage.h"
 
 void term_handler(int signo)
 {
@@ -21,7 +21,7 @@ void dump_handler(evutil_socket_t fd, short which, void *arg)
     pid_t pid = fork();
     if (pid == 0) {
         if (snap_path && Bloom) {
-            SaveSnap(Bloom, snap_path);
+            bf_dump_to_file(Bloom, snap_path);
             exit(0);
         }
         else {

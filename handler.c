@@ -42,7 +42,7 @@ void OnReq(struct evhttp_request *req, void *arg)
     }
 
     int i;
-    const char* (*Operation)(bloom_cell *, const char []) = NULL;
+    const char* (*Operation)(bloom_filter_t *, const char []) = NULL;
     for (i=0; i< sizeof HandlerTable/ sizeof HandlerTable[0] ; i++)
         if (strncmp(HandlerTable[i][0], path, STR_MAX) == 0) {
             Operation = HandlerTable[i][1];

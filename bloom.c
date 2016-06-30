@@ -7,6 +7,7 @@
 
 #include "defines.h"
 #include "sighandlers.h"
+#include "bf_ops.h"
 #include "bf_storage.h"
 #include "bf_types.h"
 #include "util.h"
@@ -27,8 +28,10 @@ int main(int argc, char *argv[])
     snap_path = argv[1];
 
     //Allocate memory
-    fprintf(stderr, "Allocating arena with size %.2f MBytes ...\n", (float)m / CHAR_BIT / MEGA);
-    Bloom = malloc( (m + ( CHAR_BIT - 1)) / CHAR_BIT ); // Ceil byte length: bytes = bits + 7 / 8
+    fprintf(stderr, "Creating space ...\n");
+    Bloom = bf_create(7188793784, 10);
+    if (!Bloom)
+        crash("Couldn`t initialize bloom filter with given parameters\n", -1);
 
 
     //Load or create snapshot file
@@ -41,8 +44,6 @@ int main(int argc, char *argv[])
         fputs("Snapshot loaded.\n", stderr);
     } else {
         fputs("Initializing new file storage...\n", stderr);
-        size_t shouldwrite = (m + (CHAR_BIT - 1)) / CHAR_BIT;
-        memset(Bloom, 0, shouldwrite); 
 
         if (bf_dump_to_file(Bloom, snap_path)) {
             fputs("Unable to save initial snapshot!\n", stderr);
@@ -86,6 +87,6 @@ int main(int argc, char *argv[])
     evhttp_free(http);
     event_free(dump_event);
     event_base_free(base);
-    free(Bloom);
+    bf_destroy(Bloom);
     return 0;
 }

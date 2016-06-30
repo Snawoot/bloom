@@ -5,16 +5,9 @@ The `bloom` is an in-memory persistent storage for determining whether an elemen
 Default configuration is sufficient for testing the set of 500,000,000 elements with false-positive probability 0.1%.
 
 ### Installation
-#### Python version
-`sudo apt-get install python-bitarray python-gevent`
-or use `pip` to install corresponding modules.
-#### C version
 Run `sudo apt-get install build-essential libssl-dev libevent-dev` in order to install dependencies. Then run `make` to build server or `make static` to build statically linked binary. 
 
 ### Running
-#### Python version
-`./bloom.py <filename_for_snapshot>`
-#### C version
 `./bloom <filename_for_snapshot>` or
 `./bloom.static <filename_for_snapshot>` if you prefer statically linked version. 
 

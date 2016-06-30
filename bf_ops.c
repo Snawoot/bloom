@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include "types.h"
+#include "bf_types.h"
 #include "defines.h"
-#include "hash.h"
+#include "bf_hash.h"
 
 //Bloom operations
 bool bf_test_bit(bloom_cell *bv, uint64_t n) {

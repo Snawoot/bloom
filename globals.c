@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <evhttp.h>
 #include <unistd.h>
-#include "types.h"
+#include "bf_types.h"
 
 //Server globals
 struct event_base *base = NULL;

@@ -1,5 +1,5 @@
-#include "types.h"
-#include "ops.h"
+#include "bf_types.h"
+#include "bf_ops.h"
 
 //URI (commands) handlers
 #define miss_response  "MISSING\n"

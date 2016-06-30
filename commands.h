@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "types.h"
+#include "bf_types.h"
 extern const char *CmdAddHandler(bloom_cell *, const char []);
 extern const char *CmdCheckHandler(bloom_cell *, const char []);
 extern const char *CmdCheckThenAddHandler(bloom_cell *, const char []);

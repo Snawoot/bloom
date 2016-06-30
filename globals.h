@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include "types.h"
+#include "bf_types.h"
 extern struct event_base *base;
 extern struct event *dump_event;
 extern struct evhttp *http;

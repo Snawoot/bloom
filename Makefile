@@ -3,8 +3,8 @@ CFLAGS=-O2
 EXECUTABLE=bloom
 LIBS=-levent -lcrypto
 STATIC_LIBS=-ldl
-OBJ=bloom.o sighandlers.o storage.o util.o ops.o commands.o handler.o hash.o
-DEPS=defines.h globals.h sighandlers.h storage.h types.h util.h ops.h commands.h handler.h hash.h
+OBJ=bloom.o sighandlers.o bf_storage.o util.o bf_ops.o commands.o handler.o bf_hash.o
+DEPS=defines.h globals.h sighandlers.h bf_storage.h bf_types.h util.h bf_ops.h commands.h handler.h bf_hash.h
 
 all: $(EXECUTABLE)
 

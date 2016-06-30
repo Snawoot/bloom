@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <evhttp.h>
 #include <string.h>
-#include "types.h"
+#include "bf_types.h"
 #include "commands.h"
 #include "globals.h"
 #include "defines.h"

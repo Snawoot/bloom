@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
+#include <event.h>
+#include <evhttp.h>
 
 #include "sighandlers.h"
 #include "bf_ops.h"
@@ -26,6 +28,15 @@ int main(int argc, char *argv[])
     int intconv;
     char *cnv;
     int c;
+
+    struct event *dump_event = NULL;
+    struct evhttp *http = NULL;
+    struct evhttp_bound_socket *handle = NULL;
+
+    struct event *timer_ev;
+    struct timeval timer_tv;
+    timer_tv.tv_sec = 300;
+    timer_tv.tv_usec = 0;
 
     //Get args
     opterr = 0;
@@ -51,6 +62,10 @@ int main(int argc, char *argv[])
             intconv = atoi(optarg);
             if (intconv <= 0 || intconv > UINT8_MAX) usage(argv[0]);
                 else k = intconv;
+            break;
+        case 't':
+            timer_tv.tv_sec = strtol(optarg, &cnv, 10);
+            if (timer_tv.tv_sec < 0 || *cnv) usage(argv[0]);
             break;
         case '?':
             usage(argv[0]);
@@ -112,6 +127,14 @@ int main(int argc, char *argv[])
         if (event_add(dump_event, NULL) == -1)
             crash("Unable to add SIGUSR1 handler!", -1);
 
+    if (timer_tv.tv_sec) {
+        if ((timer_ev = event_new(base, -1, EV_PERSIST, dump_handler, NULL)) == NULL)
+            crash("Unable to create timer handler!", -1);
+        else
+            if (evtimer_add(timer_ev, &timer_tv) == -1)
+                crash("Unable to add timer handler!", -1);
+    }
+
     if (event_base_dispatch(base) == -1)
         crash("Failed to run message loop.\n", -1);
 
@@ -120,6 +143,7 @@ int main(int argc, char *argv[])
     evhttp_del_accept_socket(http, handle);
     evhttp_free(http);
     event_free(dump_event);
+    event_free(timer_ev);
     event_base_free(base);
     bf_destroy(Bloom);
     return 0;

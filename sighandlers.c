@@ -8,10 +8,13 @@
 #include "globals.h"
 #include "bf_storage.h"
 
-void term_handler(int signo)
+void term_handler(evutil_socket_t fd, short which, void *base)
 {
     event_base_loopexit(base, NULL);
 }
+
+bool dumper_active = false;
+pid_t dumper;
 
 void dump_handler(evutil_socket_t fd, short which, void *arg)
 {
@@ -39,7 +42,7 @@ void dump_handler(evutil_socket_t fd, short which, void *arg)
     }
 }
 
-void child_collector(int signo)
+void child_collector(evutil_socket_t fd, short which, void *arg)
 {
     int status;
     pid_t pid = waitpid(dumper, &status, WNOHANG);

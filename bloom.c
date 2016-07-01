@@ -29,11 +29,11 @@ int main(int argc, char *argv[])
     char *cnv;
     int c;
 
-    struct event *dump_event = NULL;
+    struct event_base *base = NULL;
+    struct event *dump_event, *int_event, *term_event, *timer_event, *child_event;
     struct evhttp *http = NULL;
     struct evhttp_bound_socket *handle = NULL;
 
-    struct event *timer_ev;
     struct timeval timer_tv;
     timer_tv.tv_sec = 300;
     timer_tv.tv_usec = 0;
@@ -111,15 +111,24 @@ int main(int argc, char *argv[])
     if (!(handle = evhttp_bind_socket_with_handle(http, bind_address, bind_port)))
         crash("couldn't bind to port. Exiting.\n", -1);
 
-    if (signal(SIGINT, term_handler) == SIG_ERR)
-        crash("Unable to set SIGINT handler!", -1);
+    if ((term_event = evsignal_new(base, SIGTERM, term_handler, base)) == NULL)
+        crash("Unable to create SIGTERM handler!", -1);
+    else 
+        if (event_add(term_event, NULL) == -1)
+            crash("Unable to add SIGTERM handler!", -1);
 
-    if (signal(SIGTERM, term_handler) == SIG_ERR)
-        crash("Unable to set SIGTERM handler!", -1);
+    if ((int_event = evsignal_new(base, SIGINT, term_handler, base)) == NULL)
+        crash("Unable to create SIGINT handler!", -1);
+    else 
+        if (event_add(int_event, NULL) == -1)
+            crash("Unable to add SIGINT handler!", -1);
 
-    if (signal(SIGCHLD, child_collector) == SIG_ERR)
-        crash("Unable to set SIGCHLD handler!", -1);
-    
+    if ((child_event = evsignal_new(base, SIGCHLD, child_collector, NULL)) == NULL)
+        crash("Unable to create SIGCHLD handler!", -1);
+    else 
+        if (event_add(child_event, NULL) == -1)
+            crash("Unable to add SIGCHLD handler!", -1);
+
     //This signal handled by event loop in order to avoid malloc deadlock
     if ((dump_event = evsignal_new(base, SIGUSR1, dump_handler, NULL)) == NULL)
         crash("Unable to create SIGUSR1 handler!", -1);
@@ -128,10 +137,10 @@ int main(int argc, char *argv[])
             crash("Unable to add SIGUSR1 handler!", -1);
 
     if (timer_tv.tv_sec) {
-        if ((timer_ev = event_new(base, -1, EV_PERSIST, dump_handler, NULL)) == NULL)
+        if ((timer_event = event_new(base, -1, EV_PERSIST, dump_handler, NULL)) == NULL)
             crash("Unable to create timer handler!", -1);
         else
-            if (evtimer_add(timer_ev, &timer_tv) == -1)
+            if (evtimer_add(timer_event, &timer_tv) == -1)
                 crash("Unable to add timer handler!", -1);
     }
 
@@ -143,7 +152,10 @@ int main(int argc, char *argv[])
     evhttp_del_accept_socket(http, handle);
     evhttp_free(http);
     event_free(dump_event);
-    event_free(timer_ev);
+    event_free(term_event);
+    event_free(int_event);
+    event_free(timer_event);
+    event_free(child_event);
     event_base_free(base);
     bf_destroy(Bloom);
     return 0;

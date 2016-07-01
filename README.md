@@ -5,7 +5,7 @@ The `bloom` is an in-memory persistent storage for determining whether an elemen
 Default configuration is sufficient for testing the set of 500,000,000 elements with false-positive probability 0.1%.
 
 ### Installation
-Run `sudo apt-get install build-essential libssl-dev libevent-dev` in order to install dependencies. Then run `make` to build server or `make static` to build statically linked binary. 
+Run `sudo apt-get install build-essential libevent-dev` in order to install dependencies. Then run `make` to build server or `make static` to build statically linked binary. 
 
 ### Running
 `./bloom <filename_for_snapshot>` or

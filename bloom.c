@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 
     uint16_t bind_port = 8889;
     char *bind_address = "0.0.0.0";
-    bf_m_t m = 1 << 33;
+    bf_m_t m = 8589934592;
     bf_k_t k = 10;
     int intconv;
     char *cnv;

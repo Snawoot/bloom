@@ -1,1 +1,2 @@
-extern void crash(char *msg, int code);
+extern void crash(char *, int);
+void usage(char *);

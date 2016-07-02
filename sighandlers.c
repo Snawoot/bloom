@@ -2,19 +2,35 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <signal.h>
 #include <evhttp.h>
 #include <unistd.h>
 #include "globals.h"
 #include "bf_storage.h"
 
-void term_handler(evutil_socket_t fd, short which, void *base)
-{
-    event_base_loopexit(base, NULL);
-}
+#define BYTES_FOR_PID sizeof('.') + sizeof('-') + 2.5 * sizeof(pid_t) + sizeof('\0') + 1
+/* bytes for decimal record of int := 
+:= ceil(log10(INT_MAX)) + sign + zero-byte (+ 1 to avoid real ceil call)
+*/
 
 bool dumper_active = false;
 pid_t dumper;
+
+void term_handler(evutil_socket_t fd, short which, void *base)
+{
+    if (dumper_active) {
+        kill(dumper, SIGKILL); // REDIS STYLE NOW!!!
+
+        char *inprogress_fn = malloc(strlen(snap_path) + BYTES_FOR_PID);
+        sprintf(inprogress_fn, "%s.%d", snap_path, dumper);
+        unlink(inprogress_fn);
+    }
+
+    event_base_loopexit(base, NULL);
+}
 
 void dump_handler(evutil_socket_t fd, short which, void *arg)
 {

@@ -123,4 +123,5 @@ ENV/
 .ropeproject
 
 bloom
+bloom.static
 *.snap

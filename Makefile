@@ -14,7 +14,7 @@ $(EXECUTABLE): $(OBJ)
 
 static: $(EXECUTABLE).static
 
-$(EXECUTABLE).static: $(SOURCES)
+$(EXECUTABLE).static: $(OBJ)
 	$(CC) -static -static-libgcc $(CFLAGS) -o $@ $^ $(LIBS) $(STATIC_LIBS)
 
 bloom.o: bloom.c $(DEPS) globals.c

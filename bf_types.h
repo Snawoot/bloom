@@ -8,12 +8,10 @@ typedef unsigned char bf_cell_t;
 typedef uint64_t bf_m_t;
 typedef uint8_t bf_k_t;
 typedef uint16_t bf_hp_t;
-typedef uint16_t bf_hw_t;
 typedef struct {
     bf_m_t m;
     bf_k_t k;
     bf_hp_t hash_part;
-    bf_hw_t hash_width;
     bf_cell_t *space;
 } bloom_filter_t;
 

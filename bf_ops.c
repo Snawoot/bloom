@@ -82,7 +82,6 @@ bloom_filter_t *bf_create(bf_m_t m, bf_k_t k) {
     bf->m = aligned_m;
     bf->k = k;
     bf->hash_part = hp;
-    bf->hash_width = hp * k;
     bf->space = space;
 
     return bf;

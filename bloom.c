@@ -76,28 +76,22 @@ int main(int argc, char *argv[])
         usage(argv[0]);
     snap_path = argv[optind];
 
-    //Allocate memory
     fprintf(stderr, "Creating space ...\n");
-    Bloom = bf_create(m, k);
-    if (!Bloom)
-        crash("Couldn`t initialize bloom filter with given parameters\n", -1);
-
 
     //Load or create snapshot file
     if (!access(snap_path, F_OK)) {
         fputs("Loading snapshot...\n", stderr);
-        if (bf_load_from_file(Bloom, snap_path)) {
-            fputs("Unable to load snapshot!\n", stderr);
-            return -1;
+        if (!(Bloom = bf_load_from_file(snap_path))) {
+            crash("Unable to load snapshot!\n", -1);
         }
         fputs("Snapshot loaded.\n", stderr);
     } else {
         fputs("Initializing new file storage...\n", stderr);
 
-        if (bf_dump_to_file(Bloom, snap_path)) {
-            fputs("Unable to save initial snapshot!\n", stderr);
-            return -1;
-        }
+        if (!(Bloom = bf_create(m, k)))
+            crash("Couldn`t initialize bloom filter with given parameters\n", -1);
+        if (bf_dump_to_file(Bloom, snap_path))
+            crash("Unable to save initial snapshot!\n", -1);
         fputs("Initial snapshot written.\n", stderr);
     }
 

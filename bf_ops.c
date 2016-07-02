@@ -14,6 +14,19 @@ void _bf_jump_bit(bf_cell_t *bv, bf_m_t n) {
     bv[n / BF_BITS_PER_CELL] |= ((bf_cell_t)1 << ((BF_BITS_PER_CELL - 1) - (n % BF_BITS_PER_CELL )) );
 }
 
+bf_m_t _bf_make_m_power_of_two(bf_m_t m, bf_m_t *new_m, bf_hp_t *power) {
+    bf_hp_t hp = 1;
+    bf_m_t aligned_m = 2;
+    do {
+        hp++;
+        aligned_m *= 2;
+    } while (aligned_m < m && hp < ( sizeof(m) * 8));
+
+    if (new_m) *new_m = aligned_m;
+    if (power) *power = hp;
+    return aligned_m;
+}
+
 void bf_add(bloom_filter_t *bf, const char element[]) {
     bf_k_t k = bf->k;
     bf_m_t Ki[k];
@@ -57,12 +70,10 @@ bloom_filter_t *bf_create(bf_m_t m, bf_k_t k) {
     if (!m || !k)
         return NULL;
 
-    bf_hp_t hp = 1;
-    bf_m_t aligned_m = 2;
-    do {
-        hp++;
-        aligned_m *= 2;
-    } while (aligned_m < m && hp < ( sizeof(m) * 8));
+    bf_hp_t hp;
+    bf_m_t aligned_m;
+
+    _bf_make_m_power_of_two(m, &aligned_m, &hp);
 
     if (hp * k > BF_HASH_MAX_WIDTH)
         return NULL;
@@ -88,6 +99,9 @@ bloom_filter_t *bf_create(bf_m_t m, bf_k_t k) {
 }
 
 void bf_destroy(bloom_filter_t *bf) {
-    free(bf->space);
-    free(bf);
+    if (bf) {
+        if (bf->space)
+            free(bf->space);
+        free(bf);
+    }
 }

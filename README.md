@@ -1,32 +1,132 @@
-bloom
+Bloom
 =====
 
-The `bloom` is an in-memory persistent storage for determining whether an element is member of set (useful for counting uniqie events, sessions, storing approximated sets etc). Uses a Bloom filter - a space-efficient probabilistic data structure.
-Default configuration is sufficient for testing the set of 500,000,000 elements with false-positive probability 0.1%.
+Bloom is a server, which contains [Bloom filter probabilistic data structure](https://en.wikipedia.org/wiki/Bloom_filter) in memory, provides access to it via HTTP and ensures data persistence on disk by mean of atomic consistent snapshots.
 
-### Installation
-Run `sudo apt-get install build-essential libevent-dev` in order to install dependencies. Then run `make` to build server or `make static` to build statically linked binary. 
+## Building
 
-### Running
-`./bloom <filename_for_snapshot>` or
+Run these commands in sources directory:
+
+#### Debian/Ubuntu
+
+```bash
+sudo apt-get install build-essential libevent-dev
+make
+```
+
+#### RHEL/OEL/CentOS
+
+```bash
+sudo yum install gcc libevent2-devel make
+make
+```
+
+Run `make static` instead of `make` to build static binary
+
+#### Mac OS X
+
+Assuming you are using [Homebrew](http://brew.sh/)
+```bash
+brew install libevent
+make
+```
+Static build for Mac OS X is not available
+
+#### FreeBSD
+
+According to `siege` benchmarks, GCC compiler gains better performance for this application. If you want to use BSD `cc`, you may change CC variable in Makefile. Application can be built using both of them.
+
+```bash
+pkg install gcc libevent2
+make
+```
+
+#### Solaris
+
+You have to build libevent2 before:
+```bash
+sudo pkg install gcc
+wget https://github.com/libevent/libevent/releases/download/release-2.0.22-stable/libevent-2.0.22-stable.tar.gz
+tar xf libevent-2.0.22-stable.tar.gz
+cd libevent-2.0.22-stable
+./configure
+make
+sudo make install
+```
+You may also need to add `/usr/local/lib` to library search path:
+```bash
+sudo crle
+# Settings output here. Check output and add /usr/local/lib at the end, delimiting it by colon
+sudo crle -l /lib:/usr/lib:/usr/local/lib
+```
+
+After that, run build of Bloom from its directory:
+```bash
+make
+```
+
+## Installing
+
+```bash
+make install
+```
+to install dynamic binary.
+
+## Usage
+
+### Running daemon
+
+`bloom <filename_for_snapshot>` or
 `./bloom.static <filename_for_snapshot>` if you prefer statically linked version. 
 
-### Usage
+Command line options:
+```
+$ bloom -h
+Usage: bloom [options] SNAPSHOT_FILE
+
+Options:
+
+-H BIND_ADDRESS		HTTP interface bind address. Default: 0.0.0.0
+
+-P BIND_PORT		HTTP interface bind port. Default: 8889
+
+-h			Print this help message
+
+-m M			Number of bits in bloom filter. Default: 2^33
+
+-k K			Number of hash functions. Default: 10
+
+-t SECONDS		Dump bloom filter snapshot to file every SECONDS
+			seconds. You can set this value to 0 if you wish
+			to disable this feature - snapshots are taken on USR1
+			signal and at exit in any case.
+```
+Default settings is suitable for containing 500,000,000 elements with false positive probability 0.1%.
+
+### Querying
+
 Test whether an element is a member of a set:
 ```
-$ curl localhost:8888/check?e=sdfdsafdsafsadf
+$ curl http://127.0.0.1:8889/check?e=sdfdsafdsafsadf
 MISSING
 ```
 Add an element to set:
 ```
-$ curl localhost:8888/add?e=sdfdsafdsafsadf
+$ curl http://127.0.0.1:8889/add?e=sdfdsafdsafsadf
 ADDED
 ```
-Check and add at a time:
+Check then add at once:
 ```
-$ curl localhost:8888/checkthenadd?e=sdfdsafdsafsadf
+$ curl http://127.0.0.1:8889/checkthenadd?e=aaaaaabbb
+MISSING
+$ curl http://127.0.0.1:8889/checkthenadd?e=aaaaaabbb
 PRESENT
 ```
 ### Saving set
-Server saves data to snapshot file on server exit.
-In addition, you may force the server to dump snapshot on disk by sending USR1 signal. Snapshot dumping process does not blocks serving request and uses copy-on-write method, so dumped data is always consistent.
+
+Server saves data to snapshot file in following cases:
+* Server exit (received `SIGTERM` or `SIGINT`)
+* Timer event. By default server dumps snapshot to disk every 5 minutes. See also help for option `-t`.
+* On `SIGUSR1` signal. This way you may control dump process on your own by sending signal to daemon.
+
+Snapshot dumping process does not blocks serving request and uses copy-on-write method, so dumped data is always consistent.

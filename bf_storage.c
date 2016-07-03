@@ -41,9 +41,10 @@ int bf_dump_to_file(const bloom_filter_t *bf, const char *fname)
     FILE *f = fopen(inprogress_fn, "wb");
 
     if (f) {
-        shouldwrite = sizeof(hdr);
-        bwritten = fwrite(&hdr, 1, shouldwrite, f);
-        if (bwritten == shouldwrite) {
+        if (
+        1 == fwrite(&hdr.m, sizeof(hdr.m), 1, f) &&
+        1 == fwrite(&hdr.k, sizeof(hdr.k), 1, f) &&
+        1 == fwrite(&hdr.reserved, sizeof(hdr.reserved), 1, f) ) {
             shouldwrite = (bf->m + (CHAR_BIT - 1)) / CHAR_BIT;
             bwritten = fwrite(bf->space, 1, shouldwrite, f);
             if (bwritten == shouldwrite) {
@@ -75,9 +76,10 @@ bloom_filter_t *bf_load_from_file(const char *fname)
 
     FILE *f = fopen(fname, "rb");
     if (f) {
-        shouldread = sizeof(hdr);
-        bread = fread(&hdr, 1, shouldread, f);
-        if (bread == shouldread) {
+        if (
+        1 == fread(&hdr.m, sizeof(hdr.m), 1, f) &&
+        1 == fread(&hdr.k, sizeof(hdr.k), 1, f) &&
+        1 == fread(&hdr.reserved, sizeof(hdr.reserved), 1, f) ) {
             if ((hdr.m != 0) && !(hdr.m & (hdr.m - 1))) {
                 if ((bf = bf_create(hdr.m, hdr.k))) {
                     shouldread = (hdr.m + (CHAR_BIT - 1)) / CHAR_BIT;

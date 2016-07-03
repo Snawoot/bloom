@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <openssl/sha.h>
 #include "bf_types.h"
 
 #define BF_HASH_MAX_WIDTH 512

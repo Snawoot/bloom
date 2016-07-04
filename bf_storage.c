@@ -50,12 +50,11 @@ int bf_dump_to_file(const bloom_filter_t *bf, const char *fname)
             if (bwritten == shouldwrite) {
                 ret = _bf_commit_snapshot(inprogress_fn, fname);
             } else {
-                fprintf(stderr, "Should write: %ld bytes. Written %ld bytes.\n",
-                    shouldwrite, bwritten);
+                fprintf(stderr, "Should write: %lu bytes. Written %lu bytes.\n",
+                    (unsigned long) shouldwrite, (unsigned long) bwritten);
             }
         } else {
-            fprintf(stderr, "Should write: %ld bytes. Written %ld bytes.\n",
-                shouldwrite, bwritten);
+            fputs("Unable to write header.\n", stderr);
         }
         fclose(f);
     } else {
@@ -87,8 +86,8 @@ bloom_filter_t *bf_load_from_file(const char *fname)
                     if (bread == shouldread) {
                         ret = bf;
                     } else {
-                        fprintf(stderr, "Should read: %ld bytes. Read %ld bytes.\n",
-                            shouldread, bread);
+                        fprintf(stderr, "Should read: %lu bytes. Read %lu bytes.\n",
+                            (unsigned long) shouldread, (unsigned long) bread);
                         bf_destroy(bf);
                     }
                 } else {
@@ -98,8 +97,7 @@ bloom_filter_t *bf_load_from_file(const char *fname)
                 fputs("m must be power of 2.\n", stderr);
             }
         } else {
-            fprintf(stderr, "Should read: %ld bytes. Read %ld bytes.\n",
-                shouldread, bread);
+            fputs("Unable to read header.\n", stderr);
         }
         fclose(f);
     } else {

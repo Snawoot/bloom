@@ -21,7 +21,7 @@ sudo yum install gcc libevent2-devel make
 make
 ```
 
-Run `make static` instead of `make` to build static binary
+Run `make static` instead of `make` to build static binary.
 
 #### Mac OS X
 
@@ -30,7 +30,8 @@ Assuming you are using [Homebrew](http://brew.sh/)
 brew install libevent
 make
 ```
-Static build for Mac OS X is not available
+
+Static build for Mac OS X is not available now.
 
 #### FreeBSD
 
@@ -40,6 +41,8 @@ According to `siege` benchmarks, GCC compiler gains better performance for this 
 pkg install gcc libevent2
 make
 ```
+
+Run `make static` instead of `make` to build static binary.
 
 #### Solaris
 
@@ -64,6 +67,8 @@ After that, run build of Bloom from its directory:
 ```bash
 make
 ```
+
+Static build for Solaris is not available now.
 
 ## Installing
 

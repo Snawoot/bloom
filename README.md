@@ -101,7 +101,7 @@ Options:
 			to disable this feature - snapshots are taken on USR1
 			signal and at exit in any case.
 ```
-Default settings is suitable for containing 500,000,000 elements with false positive probability 0.1%.
+Default settings is suitable for containing 500,000,000 elements with false positive probability 0.1%. See also [Utilities](https://github.com/Snawoot/bloom#utilities) for parameters calculator.
 
 ### Querying
 
@@ -130,3 +130,8 @@ Server saves data to snapshot file in following cases:
 * On `SIGUSR1` signal. This way you may control dump process on your own by sending signal to daemon.
 
 Snapshot dumping process does not blocks serving request and uses copy-on-write method, so dumped data is always consistent.
+
+## Utilities
+
+* `utils/collision_meter.py` - Check structure occupancy by measuring false positive probability on completely random requests.
+* `utils/bf_calc.py` - Calculate parameters of bloom filter for given number of elements and false positives probability.

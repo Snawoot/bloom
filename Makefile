@@ -2,6 +2,7 @@ CC=gcc
 CFLAGS=-O2 -I/usr/local/include
 EXECUTABLE=bloom
 LIBS=-levent -lcrypto -L/usr/local/lib
+STATIC_LIBS:=$(shell sh -c '[ x`uname -s 2>/dev/null` = xLinux ] && echo -ldl')
 OBJ=bloom.o sighandlers.o bf_storage.o util.o bf_ops.o commands.o handler.o bf_hash.o
 DEPS=globals.h sighandlers.h bf_storage.h bf_types.h util.h bf_ops.h commands.h handler.h bf_hash.h
 PREFIX=/usr/local
@@ -14,7 +15,7 @@ $(EXECUTABLE): $(OBJ)
 static: $(EXECUTABLE).static
 
 $(EXECUTABLE).static: $(OBJ)
-	$(CC) -static -static-libgcc $(CFLAGS) -o $@ $(OBJ) $(LIBS)
+	$(CC) -static -static-libgcc $(CFLAGS) -o $@ $(OBJ) $(LIBS) $(STATIC_LIBS)
 
 bloom.o: bloom.c $(DEPS) globals.c
 	$(CC) -c $(CFLAGS) -o $@ $<

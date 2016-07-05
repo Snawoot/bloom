@@ -24,5 +24,7 @@ if __name__ == '__main__':
         usage()
     n, p = map(float, sys.argv[1:3])
     m = ceil((n * log(p)) / log(1.0 / (pow(2.0, log(2.0)))))
+    m2 = int(2**ceil(log(m,2)))
     k = round(log(2.0) * m / n)
-    print "m=%d k=%d" % (m, k)
+    k2 = round(log(2.0) * m2 / n)
+    print "m=%d k=%d m_padded=%d k_padded=%d" % (m, k, m2, k2)

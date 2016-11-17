@@ -1,4 +1,4 @@
-Bloom
+Bloom [![Build Status](https://travis-ci.org/Snawoot/bloom.svg?branch=master)](https://travis-ci.org/Snawoot/bloom)
 =====
 
 Bloom is a server, which contains [Bloom filter probabilistic data structure](https://en.wikipedia.org/wiki/Bloom_filter) in memory, provides access to it via HTTP and ensures data persistence on disk by mean of atomic consistent snapshots.

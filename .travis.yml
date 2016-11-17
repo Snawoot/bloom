@@ -1,0 +1,5 @@
+language: c
+compiler:
+  - clang
+  - gcc
+script: pkg-config --libs libevent ; pkg-config --libs --static libevent ; make -j4 && make static

@@ -5,9 +5,11 @@ Bloom is a server, which contains [Bloom filter probabilistic data structure](ht
 
 ## Building
 
-Run these commands in sources directory:
+See also [Prebuilt Docker image](#prebuilt-docker-image) and binaries on Releases page to use prebuilt ones.
 
 #### Debian/Ubuntu
+
+Run these commands in sources directory:
 
 ```bash
 sudo apt-get install build-essential libevent-dev
@@ -15,6 +17,8 @@ make
 ```
 
 #### RHEL/OEL/CentOS
+
+Run these commands in sources directory:
 
 ```bash
 sudo yum install gcc libevent2-devel make
@@ -26,6 +30,7 @@ Run `make static` instead of `make` to build static binary.
 #### Mac OS X
 
 Assuming you are using [Homebrew](http://brew.sh/)
+
 ```bash
 brew install libevent
 make
@@ -47,6 +52,7 @@ Run `make static` instead of `make` to build static binary.
 #### Solaris
 
 You have to build libevent2 before:
+
 ```bash
 sudo pkg install gcc
 wget https://github.com/libevent/libevent/releases/download/release-2.0.22-stable/libevent-2.0.22-stable.tar.gz
@@ -57,6 +63,7 @@ make
 sudo make install
 ```
 You may also need to add `/usr/local/lib` to library search path:
+
 ```bash
 sudo crle
 # Settings output here. Check output and add /usr/local/lib at the end, delimiting it by colon
@@ -64,6 +71,7 @@ sudo crle -l /lib:/usr/lib:/usr/local/lib
 ```
 
 After that, run build of Bloom from its directory:
+
 ```bash
 make
 ```
@@ -71,6 +79,30 @@ make
 Static build for Solaris is not available now.
 
 ## Installing
+
+### Prebuilt Docker image
+
+Run:
+
+```bash
+docker volume bloom
+docker run -dit \
+    -v bloom:/var/lib/bloom \
+    -p 8889:8889 \
+    --restart unless-stopped \
+    --name bloom \
+    yarmak/bloom \
+    /var/lib/bloom/bloom.dat
+```
+
+Help:
+
+```bash
+docker run -it \
+    yarmak/bloom \
+    -h
+```
+### From source built before
 
 ```bash
 make install
@@ -85,6 +117,7 @@ to install dynamic binary.
 `./bloom.static <filename_for_snapshot>` if you prefer statically linked version. 
 
 Command line options:
+
 ```
 $ bloom -h
 Usage: bloom [options] SNAPSHOT_FILE
@@ -106,6 +139,7 @@ Options:
 			to disable this feature - snapshots are taken on USR1
 			signal and at exit in any case.
 ```
+
 Default settings is suitable for containing 500,000,000 elements with false positive probability 0.1%. See also [Utilities](https://github.com/Snawoot/bloom#utilities) for parameters calculator.
 
 ### Querying

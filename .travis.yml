@@ -2,4 +2,6 @@ language: c
 compiler:
   - clang
   - gcc
+before_install:
+  - sudo apt-get install -y libevent-dev
 script: pkg-config --libs libevent ; pkg-config --libs --static libevent ; make -j4 && make static

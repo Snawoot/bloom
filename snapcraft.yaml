@@ -1,0 +1,30 @@
+name: bloom
+version: "3.0"
+summary: An in-memory bloom filter with persistence and HTTP interface
+description: >
+  Bloom is a server, which contains Bloom filter probabilistic data structure
+  in memory, provides access to it via HTTP and ensures data persistence on
+  disk by mean of atomic consistent snapshots.
+
+confinement: strict
+base: core18
+
+parts:
+  bloom:
+    plugin: make
+    source: .
+    build-packages:
+      - gcc
+      - make
+      - libevent-dev
+      - pkg-config
+    stage-packages:
+      - libevent-2.1-6
+    artifacts:
+      - bloom
+
+apps:
+  bloom:
+    command: bloom
+    plugs:
+      - network-bind

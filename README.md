@@ -1,11 +1,13 @@
-Bloom [![Build Status](https://travis-ci.org/Snawoot/bloom.svg?branch=master)](https://travis-ci.org/Snawoot/bloom)
+Bloom
 =====
+
+[![Build Status](https://travis-ci.org/Snawoot/bloom.svg?branch=master)](https://travis-ci.org/Snawoot/bloom) [![bloom](https://snapcraft.io//bloom/badge.svg)](https://snapcraft.io/bloom)
 
 Bloom is a server, which contains [Bloom filter probabilistic data structure](https://en.wikipedia.org/wiki/Bloom_filter) in memory, provides access to it via HTTP and ensures data persistence on disk by mean of atomic consistent snapshots.
 
 ## Building
 
-See also [Prebuilt Docker image](#prebuilt-docker-image) and binaries on Releases page to use prebuilt ones.
+Consider also [Prebuilt Docker image](#prebuilt-docker-image), binaries on [Releases](https://github.com/Snawoot/bloom/releases) page to use prebuilt ones and [installation from Snap Store](#from-snap-store).
 
 #### Debian/Ubuntu
 
@@ -108,6 +110,14 @@ docker run -it \
 make install
 ```
 to install dynamic binary.
+
+### From Snap Store
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/bloom)
+
+```bash
+sudo snap install bloom
+```
 
 ## Usage
 

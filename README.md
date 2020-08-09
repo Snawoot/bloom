@@ -5,6 +5,19 @@ Bloom
 
 Bloom is a server, which contains [Bloom filter probabilistic data structure](https://en.wikipedia.org/wiki/Bloom_filter) in memory, provides access to it via HTTP and ensures data persistence on disk by mean of atomic consistent snapshots.
 
+---
+
+:heart: :heart: :heart:
+
+You can say thanks to the author by donations to these wallets:
+
+- ETH: `0xB71250010e8beC90C5f9ddF408251eBA9dD7320e`
+- BTC:
+  - Legacy: `1N89PRvG1CSsUk9sxKwBwudN6TjTPQ1N8a`
+  - Segwit: `bc1qc0hcyxc000qf0ketv4r44ld7dlgmmu73rtlntw`
+
+---
+
 ## Building
 
 Consider also [Prebuilt Docker image](#prebuilt-docker-image), binaries on [Releases](https://github.com/Snawoot/bloom/releases) page to use prebuilt ones and [installation from Snap Store](#from-snap-store).
